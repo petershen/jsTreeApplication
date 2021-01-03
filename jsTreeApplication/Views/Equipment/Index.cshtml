@@ -1,0 +1,194 @@
+﻿@model TreeNode
+
+@section Styles {
+    <style>
+        .panel-container {
+            display: flex;
+            flex-direction: row;
+            border: 1px solid silver;
+            overflow: hidden;
+        }
+
+        .panel-left {
+            flex: 0 0 auto;
+            /* only manually resize */
+            padding: 10px;
+            width: 300px;
+            min-height: 500px;
+            min-width: 150px;
+            white-space: nowrap;
+            background: #838383;
+            color: white;
+        }
+
+        .splitter {
+            flex: 0 0 auto;
+            width: 8px;
+            min-height: 500px;
+            cursor: col-resize;
+        }
+
+        .panel-right {
+            flex: 1 1 auto;
+            /* resizable */
+            padding: 10px;
+            width: 100%;
+            min-height: 500px;
+            min-width: 200px;
+            background: #eee;
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+}
+
+<div class="panel-container">
+
+    <div class="panel-left">
+        <div id="jstree_demo_div">
+        </div>
+
+        <div id="nodeDialog" title="Add Node">
+            <form id="nodeFields">
+                <div class="form-group">
+                    <label asp-for="Text">Node Text</label>
+                    <input asp-for="Text" class="form-control" />
+                    <span asp-validation-for="Text"></span>
+                </div>
+                <div class="form-group">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Parent" />
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="splitter">
+    </div>
+
+    <div class="panel-right">
+        right panel
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script>
+        "use strict"
+        $(document).ready(() => {
+            const myAjax = function(option) {
+                return new Promise((resolve, reject) => $.ajax(option).done(resolve).fail(reject));
+            }
+
+            $("div.panel-left").resizable({
+                handleSelector: ".splitter",
+                resizeHeight: false
+            });
+
+            $("div#nodeDialog").dialog({
+                autoOpen: false,
+                buttons: [
+                    {
+                        text: "OK",
+                        click: function () {
+                            if ($("form#nodeFields").valid()) {
+                                myAjax({
+                                    url: window.location.origin + "/api/TreeData",
+                                    method: "POST",
+                                    data: $("form#nodeFields").serialize()
+                                })
+                                    .then(treeJson => {
+                                        console.log(treeJson);
+                                        $('#jstree_demo_div').jstree(true).settings.core.data = treeJson;
+                                        $('#jstree_demo_div').jstree(true).refresh();
+                                    })
+                                    .catch(error => { console.error(error); });
+
+                                $(this).dialog("close");
+                            }
+                        }
+                    },
+                    {
+                        text: "Cancel",
+                        click: function () {
+                            $(this).dialog("close");
+                        }
+                    }
+                ]
+            });
+
+            myAjax({
+                url: window.location.origin + "/api/TreeData",
+                method: "GET",
+            })
+                .then(treeJson => {
+                    $("#jstree_demo_div").jstree({
+                        "core": {
+                            "data": treeJson,
+                            //"force_text": true,
+                            "check_callback": true
+                        },
+                        "plugins": ["unique", "wholerow", "contextmenu"],
+                        "contextmenu": {
+                            "items": function ($node) {
+                                const tree = $("#jstree_demo_div").jstree(true);
+                                return {
+                                    "Create": {
+                                        "separator_before": false,
+                                        "separator_after": true,
+                                        "label": "Create",
+                                        "action": function (obj) {
+                                            $("input#Parent").val($node.id);
+                                            $("input#Text").val("");
+                                            $("div#nodeDialog").dialog("open");
+                                        }
+                                    },
+                                    "Rename": {
+                                        "separator_before": false,
+                                        "separator_after": false,
+                                        "label": "Rename",
+                                        "action": function (obj) {
+                                            tree.edit($node);
+                                        }
+                                    },
+                                    "Remove": {
+                                        "separator_before": false,
+                                        "separator_after": false,
+                                        "label": "Remove",
+                                        "action": function (obj) {
+                                            tree.delete_node($node);
+                                        }
+                                    }
+                                };
+                            }
+                        }
+                    }).bind("create_node.jstree", function (e, data) {
+                        //create node will be added to the datasource
+                        data.instance.settings.core.data.push(data.node);
+                        data.instance.refresh();
+                    }).bind("loaded.jstree", function (e, data) {
+                        //this will trigger when jstree is loaded
+                        //we call the api method here
+                        const v = $('#jstree_demo_div').jstree(true).get_json('#', { flat: true })
+                        console.log(v);
+                    }).bind("refresh.jstree", function (e, data) {
+                        //triggers when refresh happens
+                    }).bind("select_node.jstree", function (e, data) {
+                        //triggers when select_node called
+                    }).bind("delete_node.jstree", function (e, data) {
+                        //triggers when delete_node called
+                    });
+                })
+                .catch(error => { console.error(error); });
+
+            // Helper method createNode(parent, id, text, position).
+            // Dynamically adds nodes to the jsTree. Position can be 'first' or 'last'.
+            const createNode = (parent_node, new_node_id, new_node_text, position) => {
+                $('#jstree_demo_div').jstree('create_node', $(parent_node), { "text": new_node_text, "id": new_node_id }, position, false, false);
+            }
+        });
+    </script>
+}
