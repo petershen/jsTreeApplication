@@ -48,5 +48,30 @@ namespace jsTreeApplication.Controllers
             }
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                return Ok(await _repositiry.DeleteTreeNode(id));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> Put([FromForm] TreeNode treeNode)
+        {
+            try
+            {
+                return Ok(await _repositiry.UpdateTreeNode(treeNode));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
     }
 }

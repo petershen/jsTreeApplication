@@ -55,10 +55,9 @@
                     <input asp-for="Text" class="form-control" />
                     <span asp-validation-for="Text"></span>
                 </div>
-                <div class="form-group">
-                    <input type="hidden" asp-for="Id" />
-                    <input type="hidden" asp-for="Parent" />
-                </div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="Parent" />
+                <input type="hidden" id="httpMethod" />
             </form>
         </div>
     </div>
@@ -95,17 +94,26 @@
                         text: "OK",
                         click: function () {
                             if ($("form#nodeFields").valid()) {
-                                myAjax({
-                                    url: window.location.origin + "/api/TreeData",
-                                    method: "POST",
-                                    data: $("form#nodeFields").serialize()
+                                let promise;
+                                if ($("input:hidden#httpMethod").val() === "post") {
+                                    promise = myAjax({
+                                        url: window.location.origin + "/api/TreeData",
+                                        method: "POST",
+                                        data: $("form#nodeFields").serialize()
+                                    });
+                                }
+                                else {
+                                    promise = myAjax({
+                                        url: window.location.origin + "/api/TreeData",
+                                        method: "PUT",
+                                        data: $("form#nodeFields").serialize()
+                                    });
+                                }
+                                promise.then(treeJson => {
+                                    $('#jstree_demo_div').jstree(true).settings.core.data = treeJson;
+                                    $('#jstree_demo_div').jstree(true).refresh();
                                 })
-                                    .then(treeJson => {
-                                        console.log(treeJson);
-                                        $('#jstree_demo_div').jstree(true).settings.core.data = treeJson;
-                                        $('#jstree_demo_div').jstree(true).refresh();
-                                    })
-                                    .catch(error => { console.error(error); });
+                                .catch(error => { console.error(error); });
 
                                 $(this).dialog("close");
                             }
@@ -141,8 +149,10 @@
                                         "separator_after": true,
                                         "label": "Create",
                                         "action": function (obj) {
+                                            $("input#Id").val("");
                                             $("input#Parent").val($node.id);
                                             $("input#Text").val("");
+                                            $("input:hidden#httpMethod").val("post");
                                             $("div#nodeDialog").dialog("open");
                                         }
                                     },
@@ -151,7 +161,11 @@
                                         "separator_after": false,
                                         "label": "Rename",
                                         "action": function (obj) {
-                                            tree.edit($node);
+                                            $("input#Id").val($node.id);
+                                            $("input#Parent").val($node.parent);
+                                            $("input#Text").val($node.text);
+                                            $("input:hidden#httpMethod").val("put");
+                                            $("div#nodeDialog").dialog("open");
                                         }
                                     },
                                     "Remove": {
@@ -159,7 +173,15 @@
                                         "separator_after": false,
                                         "label": "Remove",
                                         "action": function (obj) {
-                                            tree.delete_node($node);
+                                            myAjax({
+                                                url: window.location.origin + "/api/TreeData/" + $node.id,
+                                                method: "DELETE"
+                                            })
+                                                .then(treeJson => {
+                                                    $('#jstree_demo_div').jstree(true).settings.core.data = treeJson;
+                                                    $('#jstree_demo_div').jstree(true).refresh();
+                                                })
+                                                .catch(error => { console.error(error); });
                                         }
                                     }
                                 };

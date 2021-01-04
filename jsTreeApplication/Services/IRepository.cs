@@ -10,5 +10,7 @@ namespace jsTreeApplication.Services
     {
         Task<IEnumerable<TreeNode>> GetTreeNodes();
         Task<IEnumerable<TreeNode>> AddTreeNode(TreeNode treeNode);
+        Task<IEnumerable<TreeNode>> DeleteTreeNode(string nodeId);
+        Task<IEnumerable<TreeNode>> UpdateTreeNode(TreeNode treeNode);
     }
 }
