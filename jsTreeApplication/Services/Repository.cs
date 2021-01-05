@@ -53,19 +53,18 @@ namespace jsTreeApplication.Services
         {
             string fileName = @".\NodeDefinitionJson\TreeNodes.json";
 
-            IList<TreeNode> treeNodes;
+            List<TreeNode> treeNodes;
             using (StreamReader r = new StreamReader(fileName))
             {
                 string json = await r.ReadToEndAsync();
-                treeNodes = JsonConvert.DeserializeObject<IList<TreeNode>>(json);
+                treeNodes = JsonConvert.DeserializeObject<List<TreeNode>>(json);
             }
 
-            foreach (TreeNode n in treeNodes)
+            foreach (TreeNode n in treeNodes.ToList())
             {
-                if (string.Compare(n.Id, nodeId, true) == 0)
+                if (string.Compare(n.Id, nodeId, true) == 0 || string.Compare(n.Parent, nodeId, true) == 0)
                 {
                     treeNodes.Remove(n);
-                    break;
                 }
             }
 
@@ -78,7 +77,7 @@ namespace jsTreeApplication.Services
             using (StreamReader r = new StreamReader(fileName))
             {
                 string json = await r.ReadToEndAsync();
-                treeNodes = JsonConvert.DeserializeObject<IList<TreeNode>>(json);
+                treeNodes = JsonConvert.DeserializeObject<List<TreeNode>>(json);
             }
 
             return treeNodes;
