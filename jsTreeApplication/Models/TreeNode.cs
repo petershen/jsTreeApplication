@@ -13,5 +13,6 @@ namespace jsTreeApplication.Models
         public string Parent { get; set; }
         [Required(ErrorMessage = "Text is required.")]
         public string Text { get; set; }
+        public string Notes { get; set; }
     }
 }

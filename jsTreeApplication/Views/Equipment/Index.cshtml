@@ -51,9 +51,13 @@
         <div id="nodeDialog" title="Add Node">
             <form id="nodeFields">
                 <div class="form-group">
-                    <label asp-for="Text">Node Text</label>
-                    <input asp-for="Text" class="form-control" />
+                    <label asp-for="Text">Display Text</label>
+                    <input asp-for="Text" class="form-control" style="width:200px;"/>
                     <span asp-validation-for="Text"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Notes" style="display:block;">Notes</label>
+                    <textarea asp-for="Notes" rows="10" cols="80"></textarea>
                 </div>
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="Parent" />
@@ -89,6 +93,8 @@
 
             $("div#nodeDialog").dialog({
                 autoOpen: false,
+                width: 640,
+                height: 540,
                 buttons: [
                     {
                         text: "OK",
@@ -143,7 +149,8 @@
                         "contextmenu": {
                             "items": function ($node) {
                                 const tree = $("#jstree_demo_div").jstree(true);
-                                return {
+                                let menuItem =
+                                {
                                     "Create": {
                                         "separator_before": false,
                                         "separator_after": true,
@@ -152,6 +159,7 @@
                                             $("input#Id").val("");
                                             $("input#Parent").val($node.id);
                                             $("input#Text").val("");
+                                            $("input#Notes").val("");
                                             $("input:hidden#httpMethod").val("post");
                                             $("div#nodeDialog").dialog("open");
                                         }
@@ -159,11 +167,12 @@
                                     "Rename": {
                                         "separator_before": false,
                                         "separator_after": false,
-                                        "label": "Rename",
+                                        "label": "Edit",
                                         "action": function (obj) {
                                             $("input#Id").val($node.id);
                                             $("input#Parent").val($node.parent);
                                             $("input#Text").val($node.text);
+                                            $("input#Notes").val($node.notes);
                                             $("input:hidden#httpMethod").val("put");
                                             $("div#nodeDialog").dialog("open");
                                         }
@@ -185,6 +194,12 @@
                                         }
                                     }
                                 };
+
+                                if ($node.parent === "#") {
+                                    delete menuItem.Remove;
+                                }
+
+                                return menuItem;
                             }
                         }
                     }).bind("create_node.jstree", function (e, data) {
